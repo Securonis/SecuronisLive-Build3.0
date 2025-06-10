@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# it is an unnecessary service
+systemctl mask nvidia-persistenced.service
+
+# Securonis uses only NVIDIA’s proprietary drivers.
+# The goal is to deliver a stable, fast, and hassle-free system right after installation.
+# The open-source Nouveau driver has been problematic for years:
+# kernel panics, low FPS, screen freezes, and hardware incompatibilities are common issues I do not want to deal with.
+
+# Securonis is designed for daily use.
+# Install it, run it, get your work done, shut it down.
+# It’s made for users who don’t want to waste time on unnecessary configurations, bug hunting, or system crashes.
+
+# If you’re insisting on using Nouveau then go deal with the issues yourself. idc
+
+# Securonis has a clear goal: to provide a solid, secure, and high-performance Linux experience for everyday users.

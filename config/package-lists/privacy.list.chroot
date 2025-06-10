@@ -1,0 +1,18 @@
+thunderbird
+torbrowser-launcher
+electrum
+nyx
+macchanger
+ufw
+gufw
+fail2ban
+bleachbit
+secure-delete
+#suspect packages for boot issue # check
+#usbutils
+#usbguard
+onionshare
+#apparmor
+# suspect packages for boot issue # check 
+clamav
+rkhunter

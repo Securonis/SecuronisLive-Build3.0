@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Securonis Data Destroyer
+Comment=A tool that securely deletes files by overwriting, renaming, and permanently removing them in multiple passes
+Exec=pkexec datadestroyer
+Icon=/usr/share/icons/securonis/datadestroy.png
+Terminal=false 
+Type=Application
+Categories=Utility;

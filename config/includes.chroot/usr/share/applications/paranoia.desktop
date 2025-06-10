@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Paranoia
+Comment=Paranoia is a security mode that blocks all network connections, completely isolating the system from the outside world while maximizing kernel-level security settings
+Exec=mate-terminal -- bash -c "sudo /usr/local/bin/paranoia; exec bash"
+Icon=/usr/share/icons/securonis/paranoia.png
+Terminal=true
+Type=Application
+Categories=Qt;System;

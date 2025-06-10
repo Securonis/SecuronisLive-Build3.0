@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=PhysicalSec
+Comment=Physical Security mode is a security mechanism that hardens the system against physical access and hardware-based attacks
+Exec=mate-terminal -- bash -c "sudo /usr/local/bin/physicalsec; exec bash"
+Icon=/usr/share/icons/securonis/PhysicalSec.png
+Terminal=true
+Type=Application
+Categories=Qt;System;
+

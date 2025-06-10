@@ -1,0 +1,168 @@
+#!/bin/bash
+
+# NVIDIA Driver Installation Guide
+# This script explains to NVIDIA users how to install
+# NVIDIA drivers using .run files.
+
+echo "============================================================"
+echo "           NVIDIA DRIVER INSTALLATION GUIDE                 "
+echo "============================================================"
+echo ""
+echo "This guide provides step-by-step instructions for NVIDIA graphics card"
+echo "users on how to install drivers using .run files."
+echo ""
+
+# Information functions
+show_info() {
+    echo -e "\n[INFO] $1"
+}
+
+show_warning() {
+    echo -e "\n[WARNING] $1"
+}
+
+show_step() {
+    echo -e "\n[STEP $1] $2"
+}
+
+# Main menu
+show_menu() {
+    echo ""
+    echo "What would you like to do?"
+    echo "1. System preparation and check"
+    echo "2. Download NVIDIA driver"
+    echo "3. Remove existing driver"
+    echo "4. Install new driver"
+    echo "5. Verify installation"
+    echo "6. Exit"
+    echo ""
+    read -p "Your choice (1-6): " choice
+    
+    case $choice in
+        1) system_check ;;
+        2) download_driver ;;
+        3) remove_old_driver ;;
+        4) install_new_driver ;;
+        5) verify_installation ;;
+        6) exit 0 ;;
+        *) echo "Invalid selection"; show_menu ;;
+    esac
+}
+
+# System check function
+system_check() {
+    show_step "1" "System Preparation and Check"
+    
+    show_info "Checking your graphics card..."
+    if command -v lspci &> /dev/null; then
+        echo "NVIDIA graphics card information:"
+        lspci | grep -i nvidia
+    else
+        show_warning "lspci command not found. To install it:"
+        echo "Ubuntu/Debian: sudo apt install pciutils"
+        echo "Fedora: sudo dnf install pciutils"
+        echo "Arch Linux: sudo pacman -S pciutils"
+    fi
+    
+    show_info "Checking current driver information..."
+    if command -v nvidia-smi &> /dev/null; then
+        nvidia-smi
+    else
+        echo "NVIDIA driver is not installed or not working."
+    fi
+    
+    show_info "Checking Linux kernel and required packages..."
+    echo "Kernel version: $(uname -r)"
+    
+    show_warning "Required packages for driver installation:"
+    echo "- linux-headers: Kernel header files"
+    
+    read -p "Press ENTER to return to the main menu."
+    show_menu
+}
+
+# Driver download function
+download_driver() {
+    show_step "2" "Download NVIDIA Driver"
+    
+    show_info "You should download NVIDIA drivers from the official website:"
+    echo "https://www.nvidia.com/Download/index.aspx"
+    echo ""
+    echo "1. Select your graphics card model on the website"
+    echo "2. Select your operating system"
+    echo "3. Click the 'SEARCH' button"
+    echo "4. Click the 'DOWNLOAD' button to download the .run file"
+    
+    read -p "Press ENTER to return to the main menu."
+    show_menu
+}
+
+# Remove existing driver function
+remove_old_driver() {
+    show_step "3" "Remove Existing Driver"
+    
+    show_info "You need to shut down the X server:"
+    echo "1. Close all running programs"
+    echo "2. Press Ctrl+Alt+F3 to switch to console mode"
+    echo "3. Log in with your username and password"
+    
+    show_info "Removing existing NVIDIA modules:"
+    echo "sudo rmmod nvidia_drm"
+    echo "sudo rmmod nvidia_modeset"
+    echo "sudo rmmod nvidia"
+    
+    show_info "Removing drivers installed with package manager:"
+    echo "Ubuntu/Debian: sudo apt purge '*nvidia*'"
+    echo "Fedora: sudo dnf remove '*nvidia*'"
+    echo "Arch Linux: sudo pacman -Rs nvidia nvidia-utils"
+    
+    read -p "Press ENTER to return to the main menu."
+    show_menu
+}
+
+# Install new driver function
+install_new_driver() {
+    show_step "4" "Install New Driver"
+    
+    show_info "Give execution permission to the downloaded .run file:"
+    echo "chmod +x NVIDIA-Linux-x86_64-[VERSION].run"
+    
+    show_info "Run the driver with root privileges:"
+    echo "sudo ./NVIDIA-Linux-x86_64-[VERSION].run"
+    
+    show_warning "Installation options:"
+    echo "1. 'Accept' (Accept license agreement)"
+    echo "2. 'Yes' (Install 32-bit compatibility libraries)"
+    echo "3. 'Yes' (Install kernel module using DKMS)"
+    echo "4. 'Yes' (Update X configuration file)"
+    
+    show_info "After the installation is complete, restart your system:"
+    echo "sudo reboot"
+    
+    read -p "Press ENTER to return to the main menu."
+    show_menu
+}
+
+# Verify installation function
+verify_installation() {
+    show_step "5" "Verify Installation"
+    
+    show_info "Check driver installation:"
+    echo "nvidia-smi"
+    
+    show_info "View NVIDIA settings:"
+    echo "nvidia-settings"
+    
+    show_info "Check OpenGL information:"
+    echo "glxinfo | grep -i nvidia"
+    
+    read -p "Press ENTER to return to the main menu."
+    show_menu
+}
+
+# Start the main program
+show_info "This script will help you install NVIDIA drivers using .run files. Sometimes drivers installed from apt in Debian can be problematic, so using the .run file is often better"
+show_warning "It is recommended to backup your important data before performing these operations."
+show_menu
+
+exit 0

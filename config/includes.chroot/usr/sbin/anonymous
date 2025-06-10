@@ -1,0 +1,2 @@
+#!/bin/bash
+echo "Sorry. Anonymous mode was removed in Securonis 2.2. To force all internet traffic through Tor, Seconionis is much more secure, simpler, and more stable."

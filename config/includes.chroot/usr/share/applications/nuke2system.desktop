@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Nuke2System
+Comment=Nuke2System is an emergency system wipe mechanism
+Exec=mate-terminal -- bash -c "sudo /usr/local/bin/nuke2system; exec bash"
+Icon=/usr/share/icons/securonis/Nuke2System.png
+Terminal=true
+Type=Application
+Categories=Qt;System;

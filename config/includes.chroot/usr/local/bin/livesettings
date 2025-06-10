@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then 
+    echo "Please run as root"
+    exit 1
+fi
+
+declare -A keymaps
+
+# Countries and keyboard layouts
+keymaps=(
+    ["1"]="us"
+    ["2"]="uk"
+    ["3"]="de"
+    ["4"]="fr"
+    ["5"]="es"
+    ["6"]="it"
+    ["7"]="nl"
+    ["8"]="be"
+    ["9"]="ch"
+    ["10"]="at"
+    ["11"]="se"
+    ["12"]="no"
+    ["13"]="dk"
+    ["14"]="fi"
+    ["15"]="pt"
+    ["16"]="ru"
+    ["17"]="pl"
+    ["18"]="cz"
+    ["19"]="hu"
+    ["20"]="gr"
+    ["21"]="tr"
+    ["22"]="cn"
+    ["23"]="jp"
+    ["24"]="kr"
+    ["25"]="in"
+    ["26"]="br"
+    ["27"]="ar"
+    ["28"]="mx"
+    ["29"]="ca"
+    ["30"]="au"
+    ["31"]="nz"
+    ["32"]="za"
+    ["33"]="sa"
+    ["34"]="ae"
+    ["35"]="il"
+    ["36"]="bg"
+    ["37"]="hr"
+    ["38"]="ro"
+    ["39"]="sk"
+    ["40"]="si"
+    ["41"]="rs"
+    ["42"]="ua"
+    ["43"]="by"
+    ["44"]="ee"
+    ["45"]="lv"
+    ["46"]="lt"
+    ["47"]="is"
+    ["48"]="ie"
+    ["49"]="mt"
+    ["50"]="cy"
+)
+
+echo "Select your keyboard layout:"
+for i in "${!keymaps[@]}"; do
+    echo "$i) ${keymaps[$i]}"
+done
+
+read -p "Enter your choice (default: 1 - us): " choice
+
+if [[ -z "$choice" || -z "${keymaps[$choice]}" ]]; then
+    keymap="us"
+else
+    keymap="${keymaps[$choice]}"
+fi
+
+echo "You selected keyboard layout: $keymap"
+read -p "Keyboard layout will be set to $keymap [Y/n]: " confirm
+confirm=${confirm,,}  # Convert to lowercase
+
+if [[ -z "$confirm" || "$confirm" == "y" || "$confirm" == "yy" ]]; then
+    echo "Setting keyboard layout to: $keymap"
+    setxkbmap "$keymap"
+else
+    echo "Keyboard layout change cancelled."
+    exit 1
+fi
+
+echo "Settings have been successfully applied."

@@ -1,0 +1,6 @@
+System:Securonis Linux
+Version:3.0
+Codename:Darkcloux
+ReleaseType:Rolling
+BasedOn:Debian Trixie(Testing)
+

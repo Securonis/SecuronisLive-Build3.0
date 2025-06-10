@@ -1,0 +1,396 @@
+#!/bin/bash
+
+# SECURONIS LINUX - PHYSICAL SECURITY UTILITY
+# This script enhances the physical security of your system
+# by controlling physical interfaces, sensors, and access methods.
+
+# Check if running as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "This script must be run as root. Please use sudo."
+    exit 1
+fi
+
+# Create Securonis directory if it doesn't exist
+mkdir -p /etc/securonis/physical_security
+
+# Function to display banner
+display_banner() {
+    clear
+    echo "============================================================"
+    echo "                  SECURONIS LINUX                           "
+    echo "               PHYSICAL SECURITY MODE                       "
+    echo "============================================================"
+    echo "This utility enhances physical security by controlling"
+    echo "hardware interfaces and physical access methods."
+    echo
+    
+    # Display current status prominently
+    if [ -f /etc/securonis/physical_security/enabled ]; then
+        echo "============================================================"
+        echo "          [!] PHYSICAL SECURITY MODE: ACTIVE [!]           "
+        echo "============================================================"
+    else
+        echo "============================================================"
+        echo "          [*] PHYSICAL SECURITY MODE: INACTIVE [*]         "
+        echo "============================================================"
+    fi
+    echo
+}
+
+# Function to disable USB ports
+disable_usb_ports() {
+    echo "Disabling USB ports..."
+    
+    # Create backup of current modules
+    mkdir -p /etc/securonis/physical_security/backup
+    lsmod > /etc/securonis/physical_security/backup/modules_before.txt
+    
+    # Unload USB storage modules
+    modprobe -r usb_storage
+    modprobe -r uas
+    
+    # Block USB storage modules from loading
+    echo "blacklist usb_storage" > /etc/modprobe.d/securonis-block-usb.conf
+    echo "blacklist uas" >> /etc/modprobe.d/securonis-block-usb.conf
+    
+    # Update initramfs
+    if command -v update-initramfs &> /dev/null; then
+        update-initramfs -u
+    fi
+    
+    echo "USB storage devices blocked."
+}
+
+# Function to enable USB ports
+enable_usb_ports() {
+    echo "Enabling USB ports..."
+    
+    # Remove blacklist file
+    rm -f /etc/modprobe.d/securonis-block-usb.conf
+    
+    # Load USB storage modules
+    modprobe usb_storage
+    modprobe uas
+    
+    # Update initramfs
+    if command -v update-initramfs &> /dev/null; then
+        update-initramfs -u
+    fi
+    
+    echo "USB storage devices enabled."
+}
+
+# Function to disable webcam
+disable_webcam() {
+    echo "Disabling webcam..."
+    
+    # Find webcam modules
+    webcam_modules=$(lsmod | grep -E 'uvcvideo|videodev' | awk '{print $1}')
+    
+    # Save current webcam modules
+    echo "$webcam_modules" > /etc/securonis/physical_security/backup/webcam_modules.txt
+    
+    # Unload webcam modules
+    for module in $webcam_modules; do
+        modprobe -r $module 2>/dev/null
+    done
+    
+    # Block webcam modules
+    echo "blacklist uvcvideo" > /etc/modprobe.d/securonis-block-webcam.conf
+    
+    echo "Webcam disabled."
+}
+
+# Function to enable webcam
+enable_webcam() {
+    echo "Enabling webcam..."
+    
+    # Remove blacklist file
+    rm -f /etc/modprobe.d/securonis-block-webcam.conf
+    
+    # Load webcam modules if they were previously loaded
+    if [ -f /etc/securonis/physical_security/backup/webcam_modules.txt ]; then
+        while read module; do
+            modprobe $module 2>/dev/null
+        done < /etc/securonis/physical_security/backup/webcam_modules.txt
+    else
+        # Default modules
+        modprobe uvcvideo
+        modprobe videodev
+    fi
+    
+    echo "Webcam enabled."
+}
+
+# Function to disable microphone
+disable_microphone() {
+    echo "Disabling microphone..."
+    
+    # Mute all microphones
+    if command -v amixer &> /dev/null; then
+        amixer -q set Capture nocap
+        amixer -q set Capture 0%
+    fi
+    
+    # Alternative method using PulseAudio
+    if command -v pactl &> /dev/null; then
+        # Get all source indices
+        sources=$(pactl list sources short | awk '{print $1}')
+        for source in $sources; do
+            pactl set-source-mute $source 1
+            pactl set-source-volume $source 0%
+        done
+    fi
+    
+    echo "Microphone disabled."
+}
+
+# Function to enable microphone
+enable_microphone() {
+    echo "Enabling microphone..."
+    
+    # Unmute microphones
+    if command -v amixer &> /dev/null; then
+        amixer -q set Capture cap
+        amixer -q set Capture 80%
+    fi
+    
+    # Alternative method using PulseAudio
+    if command -v pactl &> /dev/null; then
+        # Get all source indices
+        sources=$(pactl list sources short | awk '{print $1}')
+        for source in $sources; do
+            pactl set-source-mute $source 0
+            pactl set-source-volume $source 80%
+        done
+    fi
+    
+    echo "Microphone enabled."
+}
+
+# Function to configure automatic screen locking
+configure_screen_locking() {
+    echo "Configuring automatic screen locking..."
+    
+    # Set short timeout for screen locking (1 minute)
+    if command -v gsettings &> /dev/null; then
+        # For GNOME
+        gsettings set org.gnome.desktop.session idle-delay 60
+        gsettings set org.gnome.desktop.screensaver lock-enabled true
+        gsettings set org.gnome.desktop.screensaver lock-delay 0
+    elif command -v xfconf-query &> /dev/null; then
+        # For XFCE
+        xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/lock-screen-suspend-hibernate -s true
+        xfconf-query -c xfce4-screensaver -p /lock/lock-after-screensaver -s 1
+    fi
+    
+    # Configure logind.conf for system-wide settings
+    cp /etc/systemd/logind.conf /etc/securonis/physical_security/backup/logind.conf.backup 2>/dev/null
+    sed -i 's/#IdleAction=ignore/IdleAction=lock/g' /etc/systemd/logind.conf
+    sed -i 's/#IdleActionSec=30min/IdleActionSec=1min/g' /etc/systemd/logind.conf
+    
+    echo "Automatic screen locking configured."
+}
+
+# Function to disable Bluetooth
+disable_bluetooth() {
+    echo "Disabling Bluetooth..."
+    
+    # Stop and disable Bluetooth service
+    systemctl stop bluetooth.service 2>/dev/null
+    systemctl disable bluetooth.service 2>/dev/null
+    
+    # Unload Bluetooth modules
+    modprobe -r btusb
+    modprobe -r bluetooth
+    
+    # Block Bluetooth modules
+    echo "blacklist btusb" > /etc/modprobe.d/securonis-block-bluetooth.conf
+    echo "blacklist bluetooth" >> /etc/modprobe.d/securonis-block-bluetooth.conf
+    
+    echo "Bluetooth disabled."
+}
+
+# Function to enable Bluetooth
+enable_bluetooth() {
+    echo "Enabling Bluetooth..."
+    
+    # Remove blacklist file
+    rm -f /etc/modprobe.d/securonis-block-bluetooth.conf
+    
+    # Load Bluetooth modules
+    modprobe bluetooth
+    modprobe btusb
+    
+    # Enable and start Bluetooth service
+    systemctl enable bluetooth.service 2>/dev/null
+    systemctl start bluetooth.service 2>/dev/null
+    
+    echo "Bluetooth enabled."
+}
+
+# Function to configure BIOS/UEFI password reminder
+bios_password_reminder() {
+    echo "BIOS/UEFI Password Security Reminder"
+    echo "----------------------------------"
+    echo "For maximum physical security, you should set a BIOS/UEFI password."
+    echo "This script cannot do this automatically as it requires manual configuration."
+    echo
+    echo "Please remember to:"
+    echo "1. Set a strong BIOS/UEFI password"
+    echo "2. Disable booting from external devices"
+    echo "3. Password-protect GRUB bootloader"
+    echo
+    read -p "Press Enter to continue..."
+}
+
+# Function to enable physical security mode
+enable_physical_security() {
+    echo "Enabling Physical Security Mode..."
+    echo
+    
+    # Disable USB storage
+    disable_usb_ports
+    
+    # Disable webcam
+    disable_webcam
+    
+    # Disable microphone
+    disable_microphone
+    
+    # Configure screen locking
+    configure_screen_locking
+    
+    # Disable Bluetooth
+    disable_bluetooth
+    
+    # Show BIOS password reminder
+    bios_password_reminder
+    
+    # Create status file
+    touch /etc/securonis/physical_security/enabled
+    
+    echo
+    echo "Physical Security Mode successfully enabled."
+    echo "Your system is now hardened against physical access threats."
+    echo
+    read -p "Press Enter to return to the menu..."
+}
+
+# Function to disable physical security mode
+disable_physical_security() {
+    echo "Disabling Physical Security Mode..."
+    echo
+    
+    # Enable USB storage
+    enable_usb_ports
+    
+    # Enable webcam
+    enable_webcam
+    
+    # Enable microphone
+    enable_microphone
+    
+    # Enable Bluetooth
+    enable_bluetooth
+    
+    # Restore logind.conf if backup exists
+    if [ -f /etc/securonis/physical_security/backup/logind.conf.backup ]; then
+        cp /etc/securonis/physical_security/backup/logind.conf.backup /etc/systemd/logind.conf
+    fi
+    
+    # Remove status file
+    rm -f /etc/securonis/physical_security/enabled
+    
+    echo
+    echo "Physical Security Mode successfully disabled."
+    echo "Standard hardware access has been restored."
+    echo
+    read -p "Press Enter to return to the menu..."
+}
+
+# Function to show current physical security status
+show_security_status() {
+    echo "Physical Security Status"
+    echo "----------------------"
+    
+    # Check USB status
+    if lsmod | grep -q "usb_storage"; then
+        echo "USB Storage: ENABLED"
+    else
+        echo "USB Storage: DISABLED"
+    fi
+    
+    # Check webcam status
+    if lsmod | grep -q "uvcvideo"; then
+        echo "Webcam: ENABLED"
+    else
+        echo "Webcam: DISABLED"
+    fi
+    
+    # Check microphone status
+    if command -v amixer &> /dev/null; then
+        if amixer get Capture | grep -q "\[on\]"; then
+            echo "Microphone: ENABLED"
+        else
+            echo "Microphone: DISABLED"
+        fi
+    else
+        echo "Microphone: STATUS UNKNOWN"
+    fi
+    
+    # Check Bluetooth status
+    if systemctl is-active bluetooth.service &> /dev/null; then
+        echo "Bluetooth: ENABLED"
+    else
+        echo "Bluetooth: DISABLED"
+    fi
+    
+    # Check screen lock status
+    if command -v gsettings &> /dev/null; then
+        lock_enabled=$(gsettings get org.gnome.desktop.screensaver lock-enabled)
+        if [ "$lock_enabled" = "true" ]; then
+            echo "Screen Lock: ENABLED"
+        else
+            echo "Screen Lock: DISABLED"
+        fi
+    else
+        echo "Screen Lock: STATUS UNKNOWN"
+    fi
+    
+    echo
+    read -p "Press Enter to return to the menu..."
+}
+
+# Main menu loop
+while true; do
+    display_banner
+    
+    echo "Select an option:"
+    echo "1) Enable Physical Security Mode"
+    echo "2) Disable Physical Security Mode"
+    echo "3) Show Security Status"
+    echo "4) Exit"
+    echo
+    read -p "Enter your choice (1-4): " choice
+    
+    case $choice in
+        1)
+            enable_physical_security
+            ;;
+        2)
+            disable_physical_security
+            ;;
+        3)
+            show_security_status
+            ;;
+        4)
+            echo "Exiting Physical Security utility."
+            exit 0
+            ;;
+        *)
+            echo "Invalid option. Please try again."
+            sleep 2
+            ;;
+    esac
+done

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+echo "Starting ProtonVPN installation..."
+
+echo "Downloading ProtonVPN stable release package..."
+if sudo wget https://repo.protonvpn.com/debian/dists/stable/main/binary-all/protonvpn-stable-release_1.0.8_all.deb -O protonvpn-release.deb; then
+    echo "Download completed successfully."
+else
+    echo "Error: Failed to download ProtonVPN package. Please check your internet connection."
+    exit 1
+fi
+
+echo "Installing ProtonVPN repository package..."
+if sudo dpkg -i ./protonvpn-release.deb; then
+    echo "Repository package installed."
+else
+    echo "Error: Failed to install ProtonVPN repository package."
+    exit 1
+fi
+
+echo "Updating package lists..."
+if sudo apt update; then
+    echo "Package lists updated."
+else
+    echo "Error: Failed to update package lists."
+    exit 1
+fi
+
+echo "Installing ProtonVPN GNOME desktop client..."
+if sudo apt install proton-vpn-gnome-desktop -y; then
+    echo "ProtonVPN installed successfully."
+else
+    echo "Error: Failed to install ProtonVPN client."
+    exit 1
+fi
+
+echo "ProtonVPN installation finished. You can now launch it from your applications menu."

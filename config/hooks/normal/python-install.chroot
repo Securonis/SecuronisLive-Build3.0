@@ -1,0 +1,2 @@
+#!/bin/bash
+sudo pip install scapy tkcalendar tabulate matplotlib termcolor networkx psutil piexif pandas pycountry --break-system-packages
